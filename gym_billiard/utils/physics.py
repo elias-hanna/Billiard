@@ -219,6 +219,40 @@ class PhysicsSim(object):
     ## Arm definition with links and joints
     self.arm = {'link0': link0, 'link1': link1, 'joint01': joint01, 'jointW0': jointW0}
 
+  def _create_cue(self, cue_position=None):
+    """
+    Creates an actuated cue.
+    :param cue_position: Initial space position
+    :return:
+    """
+    arm_pose = self._calculate_arm_pose(arm_position)
+    link0 = self.world.CreateDynamicBody(position=arm_pose['link0_center'],
+                                         angle=arm_pose['link0_angle'],
+                                         bullet=True,
+                                         allowSleep=True,
+                                         userData={'name': 'link0'},
+                                         fixtures=b2.b2FixtureDef(
+                                           shape=b2.b2PolygonShape(box=(self.params.LINK_THICKNESS,
+                                                                        self.params.LINK_0_LENGTH/2)),
+                                           density=5,
+                                           friction=self.params.LINK_FRICTION,
+                                           restitution=self.params.LINK_ELASTICITY))
+
+    jointW0 = self.world.CreatePrismaticJoint(bodyA=self.walls[3],
+                                              bodyB=link0,
+                                              anchor=self.walls[3].worldCenter,
+                                              axis=(1, 0),
+                                              lowerTranslation=-5.0,
+                                              upperTranslation=5.0,
+                                              enableLimit=True,
+                                              motorForce=1.0,
+                                              motorSpeed=0.0,
+                                              enableMotor=True)
+    
+    ## Arm definition with links and joints
+    # self.cue = {'link0': link0, 'link1': link1, 'joint01': joint01, 'jointW0': jointW0}
+    self.cue = {'link0': link0, 'jointW0': jointW0}
+
   def _create_holes(self):
     """
     Defines the holes in table RF. This ones are not simulated, but just defined as a list of dicts.
