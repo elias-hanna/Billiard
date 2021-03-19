@@ -16,3 +16,9 @@ register(
     entry_point='gym_billiard.envs:Curling',
     # timestep_limit=1000,
 )
+
+register(
+    id='CurlingCue-v0',
+    entry_point='gym_billiard.envs:CurlingCue',
+    # timestep_limit=1000,
+)

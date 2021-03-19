@@ -47,7 +47,7 @@ class PhysicsSim(object):
   """
   Physics simulator
   """
-  def __init__(self, balls_pose=[[0, 0]], arm_position=None, params=None):
+  def __init__(self, balls_pose=[[0, 0]], arm_position=None, params=None, use_cue=False, cue_angle=0):
     """
     Constructor
     :param balls_pose: Initial ball poses. Is a list of the ball poses [ball0, ball1, ...]
@@ -66,7 +66,12 @@ class PhysicsSim(object):
     self.pos_iter = self.params.POS_ITER
     self._create_table()
     self._create_balls(balls_pose)
-    self._create_robotarm(arm_position)
+    self._use_cue = use_cue
+    if(self._use_cue):
+      # self._create_cue(cue_position=arm_position)
+      self._create_cue(cue_position=np.append(balls_pose[0], cue_angle))
+    else:
+      self._create_robotarm(arm_position)
     self._create_holes()
 
   def _create_table(self):
@@ -219,13 +224,43 @@ class PhysicsSim(object):
     ## Arm definition with links and joints
     self.arm = {'link0': link0, 'link1': link1, 'joint01': joint01, 'jointW0': jointW0}
 
+  def _calculate_cue_pose(self, ball_position=None):
+    """
+    This function calculates the cue initial position according to the ball to hit position
+    :param ball_position: joint arm position in radians. The zero is at the vertical position
+    :return: link0 and link1 position.
+    """
+    pose = {'link0_center': np.array((self.params.TABLE_CENTER[0], self.params.LINK_0_LENGTH/2)),
+            'link0_angle':0}
+    if ball_position is not None:
+      ## LINK 0
+      l0_joint_center = np.array([self.params.TABLE_CENTER[0], 0]) # Get joint0 position
+      pose['link0_center'] = pose['link0_center'] - l0_joint_center # Center link0 on joint0 position
+      # Rotate link0 center according to joint0 angle
+      x = np.cos(ball_position[0]) * pose['link0_center'][0] - np.sin(ball_position[0]) * pose['link0_center'][1]
+      y = np.sin(ball_position[0]) * pose['link0_center'][0] + np.cos(ball_position[0]) * pose['link0_center'][1]
+      pose['link0_center'] = np.array((x, y)) + l0_joint_center
+
+      ball_position[0:2] = ball_position[0:2] + self.tw_transform
+      x = float(ball_position[0])
+      y = float(ball_position[1])
+
+      cue_distance_to_ball = 0.3
+      x = ball_position[0] + (-np.sin(ball_position[2]) * (pose['link0_center'][1] + cue_distance_to_ball))
+      y = ball_position[1] + (np.cos(ball_position[2]) * (pose['link0_center'][1] + cue_distance_to_ball)) 
+
+      pose['link0_center'] = np.array((x, y)) #+ l0_joint_center
+      pose['link0_angle'] = float(ball_position[2])
+
+    return pose
+  
   def _create_cue(self, cue_position=None):
     """
     Creates an actuated cue.
     :param cue_position: Initial space position
     :return:
     """
-    arm_pose = self._calculate_arm_pose(arm_position)
+    arm_pose = self._calculate_cue_pose(cue_position)
     link0 = self.world.CreateDynamicBody(position=arm_pose['link0_center'],
                                          angle=arm_pose['link0_angle'],
                                          bullet=True,
@@ -238,19 +273,21 @@ class PhysicsSim(object):
                                            friction=self.params.LINK_FRICTION,
                                            restitution=self.params.LINK_ELASTICITY))
 
+    # Compute prismatic axis so that it's along the cue
+    axis = (np.sin(cue_position[2]), -np.cos(cue_position[2]))
+    
     jointW0 = self.world.CreatePrismaticJoint(bodyA=self.walls[3],
                                               bodyB=link0,
                                               anchor=self.walls[3].worldCenter,
-                                              axis=(1, 0),
+                                              axis=axis,
                                               lowerTranslation=-5.0,
                                               upperTranslation=5.0,
                                               enableLimit=True,
-                                              motorForce=1.0,
+                                              maxMotorForce=1.0,
                                               motorSpeed=0.0,
                                               enableMotor=True)
     
     ## Arm definition with links and joints
-    # self.cue = {'link0': link0, 'link1': link1, 'joint01': joint01, 'jointW0': jointW0}
     self.cue = {'link0': link0, 'jointW0': jointW0}
 
   def _create_holes(self):
@@ -262,11 +299,12 @@ class PhysicsSim(object):
     self.holes = [{'pose': np.array([-self.params.TABLE_SIZE[0] / 2, self.params.TABLE_SIZE[1] / 2]), 'radius': .4},
                   {'pose': np.array([self.params.TABLE_SIZE[0] / 2, self.params.TABLE_SIZE[1] / 2]), 'radius': .4}]
 
-  def reset(self, balls_pose, arm_position):
+  def reset(self, balls_pose, arm_position, cue_angle=0):
     """
     Reset the world to the given arm and balls poses
     :param balls_pose:
     :param arm_position:
+    :param use_cue: uses a pool cue instead of a robotic arm
     :return:
     """
     ## Destroy all the bodies
@@ -276,7 +314,10 @@ class PhysicsSim(object):
 
     ## Recreate the balls and the arm
     self._create_balls(balls_pose)
-    self._create_robotarm(arm_position)
+    if(self._use_cue):
+      self._create_cue(cue_position=np.append(balls_pose[0], cue_angle))
+    else:
+      self._create_robotarm(arm_position)
 
   def move_joint(self, joint, value):
     """
@@ -285,14 +326,20 @@ class PhysicsSim(object):
     :param value: Speed or torque to add to the joint
     :return:
     """
-    speed = self.arm[joint].motorSpeed
+    if(self._use_cue):
+      speed = self.cue[joint].motorSpeed
+    else:
+      speed = self.arm[joint].motorSpeed
     if self.params.TORQUE_CONTROL:
       speed = speed + value * self.dt
     else:
       speed = value
 
     # Limit max joint speed
-    self.arm[joint].motorSpeed = np.float(np.sign(speed)*min(1, np.abs(speed)))
+    if(self._use_cue):
+      self.cue[joint].motorSpeed = np.float(np.sign(speed)*min(1, np.abs(speed)))
+    else:
+      self.arm[joint].motorSpeed = np.float(np.sign(speed)*min(1, np.abs(speed)))
 
   def step(self):
     """

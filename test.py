@@ -1,6 +1,7 @@
 import gym
 import gym_billiard
-env = gym.make('Curling-v0')
+# env = gym.make('Curling-v0')
+env = gym.make('CurlingCue-v0')
 import numpy as np
 import matplotlib.pyplot as plt
 from math import cos
