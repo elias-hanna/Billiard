@@ -49,13 +49,13 @@ class CurlingCue(billiard_env.BilliardEnv):
     else:
       init_ball_pose = np.array([-0.5, 0.2])
 
-    if self.params.RANDOM_ARM_INIT_POSE:
-      init_joint_pose = np.array([self.np_random.uniform(low=-np.pi * .2, high=np.pi * .2),  # Joint0
-                                  self.np_random.uniform(low=-np.pi * .9, high=np.pi * .9)])  # Joint1
+    if self.params.RANDOM_CUE_INIT_ANGLE:
+      init_cue_angle = self.np_random.uniform(low= -np.pi, high=np.pi)
     else:
-      init_joint_pose = None
+      init_cue_angle = 0
 
-    self.physics_eng.reset([init_ball_pose], init_joint_pose)
+    init_joint_pose = None
+    self.physics_eng.reset([init_ball_pose], init_joint_pose, cue_angle=init_cue_angle)
     self.steps = 0
     self.rew_area = None
     return self._get_obs()
