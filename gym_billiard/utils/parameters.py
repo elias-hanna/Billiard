@@ -33,7 +33,7 @@ class Params(object):
     self.WALLS_CATEGORY = 0x0001
     self.BALL_CATEGORY = 0x0002
 
-    self.CUE_DISTANCE_TO_BALL = 0.1
+    self.CUE_DISTANCE_TO_BALL = 0.2
 
   # Graphic params
     self.PPM = int(min(self.DISPLAY_SIZE)/max(self.TABLE_SIZE))

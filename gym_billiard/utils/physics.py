@@ -290,10 +290,10 @@ class PhysicsSim(object):
                                               bodyB=link0,
                                               anchor=self.walls[3].worldCenter,
                                               axis=axis,
-                                              lowerTranslation=-.2,
-                                              upperTranslation=.2,
+                                              lowerTranslation=-self.params.CUE_DISTANCE_TO_BALL,
+                                              upperTranslation=self.params.CUE_DISTANCE_TO_BALL,
                                               enableLimit=True,
-                                              maxMotorForce=1.0,
+                                              maxMotorForce=10000.0,
                                               motorSpeed=0.0,
                                               enableMotor=True)
     
@@ -347,7 +347,7 @@ class PhysicsSim(object):
 
     # Limit max joint speed
     if(self._use_cue):
-      self.cue[joint].motorSpeed = np.float(np.sign(speed)*min(100, np.abs(speed)))
+      self.cue[joint].motorSpeed = np.float(np.sign(speed)*min(10, np.abs(speed)))
     else:
       self.arm[joint].motorSpeed = np.float(np.sign(speed)*min(1, np.abs(speed)))
 

@@ -10,7 +10,7 @@ print('Actions {}'.format(env.action_space))
 print('Obs {}'.format(env.observation_space))
 
 action = env.action_space.sample()
-lim = 0
+lim = 200
 total_act = np.array([0., 0.])
 for i in range(10):
   obs = env.reset()
@@ -18,11 +18,11 @@ for i in range(10):
 
   for t in range(10000):
     if t < lim:
-      action = [10, 5.]
+      action = [1, 5.]
       total_act += np.array(action)
 
     else:
-      action = [0., 0.]
+      action = [0.1, 0.]
     img = env.render()
     env.render(mode='human')
     from matplotlib import pyplot as plt
