@@ -30,6 +30,8 @@ class Params(object):
 
     self.VEL_ITER = 100
     self.POS_ITER = 100
+    self.WALLS_CATEGORY = 0x0001
+    self.BALL_CATEGORY = 0x0002
 
   # Graphic params
     self.PPM = int(min(self.DISPLAY_SIZE)/max(self.TABLE_SIZE))

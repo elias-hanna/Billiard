@@ -82,22 +82,31 @@ class PhysicsSim(object):
     ## Walls in world RF
     left_wall_body = self.world.CreateStaticBody(position=(0, self.params.TABLE_CENTER[1]),
                                                  userData={'name': 'left wall'},
-                                                 shapes=b2.b2PolygonShape(box=(self.params.WALL_THICKNESS/2,
-                                                                               self.params.TABLE_SIZE[1]/2)))
+                                                 fixtures=b2.b2FixtureDef(shape=b2.b2PolygonShape(box=(self.params.WALL_THICKNESS/2,
+                                                                                                       self.params.TABLE_SIZE[1]/2)),
+                                                                          categoryBits=self.params.WALLS_CATEGORY,
+                                                                          maskBits=self.params.BALL_CATEGORY))
 
     right_wall_body = self.world.CreateStaticBody(position=(self.params.TABLE_SIZE[0], self.params.TABLE_CENTER[1]),
                                                   userData={'name': 'right wall'},
-                                                  shapes=b2.b2PolygonShape(box=(self.params.WALL_THICKNESS/2,
-                                                                                self.params.TABLE_SIZE[1] / 2)))
+                                                  fixtures=b2.b2FixtureDef(shape=b2.b2PolygonShape(box=(self.params.WALL_THICKNESS/2,
+                                                                                                        self.params.TABLE_SIZE[1]/2)),
+                                                                           categoryBits=self.params.WALLS_CATEGORY,
+                                                                           maskBits=self.params.BALL_CATEGORY))
 
     upper_wall_body = self.world.CreateStaticBody(position=(self.params.TABLE_CENTER[0], self.params.TABLE_SIZE[1]),
                                                   userData={'name': 'upper wall'},
-                                                  shapes=b2.b2PolygonShape(box=(self.params.TABLE_SIZE[0] / 2,
-                                                                                self.params.WALL_THICKNESS/2)))
+                                                  fixtures=b2.b2FixtureDef(shape=b2.b2PolygonShape(box=(self.params.TABLE_SIZE[0]/2,
+                                                                                                        self.params.WALL_THICKNESS/2)),
+                                                                           categoryBits=self.params.WALLS_CATEGORY,
+                                                                           maskBits=self.params.BALL_CATEGORY))
+    
     bottom_wall_body = self.world.CreateStaticBody(position=(self.params.TABLE_CENTER[0], 0),
                                                    userData={'name': 'bottom wall'},
-                                                   shapes=b2.b2PolygonShape(box=(self.params.TABLE_SIZE[0] / 2,
-                                                                                 self.params.WALL_THICKNESS/2)))
+                                                   fixtures=b2.b2FixtureDef(shape=b2.b2PolygonShape(box=(self.params.TABLE_SIZE[0]/2,
+                                                                                                         self.params.WALL_THICKNESS/2)),
+                                                                            categoryBits=self.params.WALLS_CATEGORY,
+                                                                            maskBits=self.params.BALL_CATEGORY))
 
     self.walls = [left_wall_body, upper_wall_body, right_wall_body, bottom_wall_body]
 
@@ -126,7 +135,9 @@ class PhysicsSim(object):
                                           fixtures=b2.b2FixtureDef(shape=b2.b2CircleShape(radius=self.params.BALL_RADIUS),
                                                                    density=.5,
                                                                    friction=self.params.BALL_FRICTION,
-                                                                   restitution=self.params.BALL_ELASTICITY,))
+                                                                   restitution=self.params.BALL_ELASTICITY,
+                                                                   categoryBits=self.params.BALL_CATEGORY,
+                                                                   maskBits=self.params.WALLS_CATEGORY))
       self.balls.append(ball)
 
   def _calculate_arm_pose(self, arm_position=None):
@@ -266,13 +277,15 @@ class PhysicsSim(object):
                                          bullet=True,
                                          allowSleep=True,
                                          userData={'name': 'link0'},
-                                         fixtures=b2.b2FixtureDef(
+                                        fixtures=b2.b2FixtureDef(
                                            shape=b2.b2PolygonShape(box=(self.params.LINK_THICKNESS,
                                                                         self.params.LINK_0_LENGTH/2)),
-                                           density=5,
-                                           friction=self.params.LINK_FRICTION,
-                                           restitution=self.params.LINK_ELASTICITY))
-
+                                          density=5,
+                                          friction=self.params.LINK_FRICTION,
+                                          restitution=self.params.LINK_ELASTICITY,
+                                          categoryBits=self.params.WALLS_CATEGORY,
+                                          maskBits=self.params.BALL_CATEGORY))
+    
     # Compute prismatic axis so that it's along the cue
     axis = (np.sin(cue_position[2]), -np.cos(cue_position[2]))
     
@@ -280,8 +293,8 @@ class PhysicsSim(object):
                                               bodyB=link0,
                                               anchor=self.walls[3].worldCenter,
                                               axis=axis,
-                                              lowerTranslation=-5.0,
-                                              upperTranslation=5.0,
+                                              lowerTranslation=-10.0,
+                                              upperTranslation=10.0,
                                               enableLimit=True,
                                               maxMotorForce=1.0,
                                               motorSpeed=0.0,

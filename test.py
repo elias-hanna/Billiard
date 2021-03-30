@@ -16,9 +16,9 @@ for i in range(10):
   obs = env.reset()
   a = env.render(mode='rgb_array')
 
-  for t in range(10000):
+  for t in range(100000):
     if t < lim:
-      action = [0.5, 1.]
+      action = [1.1, 5.]
       total_act += np.array(action)
 
     else:
