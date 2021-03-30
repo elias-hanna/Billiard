@@ -245,22 +245,19 @@ class PhysicsSim(object):
             'link0_angle':0}
     if ball_position is not None:
       ## LINK 0
-      l0_joint_center = np.array([self.params.TABLE_CENTER[0], 0]) # Get joint0 position
-      pose['link0_center'] = pose['link0_center'] - l0_joint_center # Center link0 on joint0 position
-      # Rotate link0 center according to joint0 angle
-      x = np.cos(ball_position[0]) * pose['link0_center'][0] - np.sin(ball_position[0]) * pose['link0_center'][1]
-      y = np.sin(ball_position[0]) * pose['link0_center'][0] + np.cos(ball_position[0]) * pose['link0_center'][1]
-      pose['link0_center'] = np.array((x, y)) + l0_joint_center
-
       ball_position[0:2] = ball_position[0:2] + self.tw_transform
-      x = float(ball_position[0])
-      y = float(ball_position[1])
 
-      cue_distance_to_ball = 0.3
-      x = ball_position[0] + (-np.sin(ball_position[2]) * (pose['link0_center'][1] + cue_distance_to_ball))
-      y = ball_position[1] + (np.cos(ball_position[2]) * (pose['link0_center'][1] + cue_distance_to_ball)) 
+      x = ball_position[0] + (-np.sin(ball_position[2]) *
+                              (self.params.LINK_0_LENGTH/2 + self.params.CUE_DISTANCE_TO_BALL + self.params.BALL_RADIUS))
+      y = ball_position[1] + (np.cos(ball_position[2]) *
+                              (self.params.LINK_0_LENGTH/2 + self.params.CUE_DISTANCE_TO_BALL + self.params.BALL_RADIUS)) 
 
-      pose['link0_center'] = np.array((x, y)) #+ l0_joint_center
+      center_pose = np.array((x,y))
+
+      print("DISTANCE TO BALL CENTER BEFORE: ", np.linalg.norm(np.array(ball_position[0], ball_position[1]) - center_pose))
+      
+      # pose['link0_center'] = np.array((x, y)) #+ l0_joint_center
+      pose['link0_center'] = center_pose #+ l0_joint_center
       pose['link0_angle'] = float(ball_position[2])
 
     return pose
@@ -271,9 +268,9 @@ class PhysicsSim(object):
     :param cue_position: Initial space position
     :return:
     """
-    arm_pose = self._calculate_cue_pose(cue_position)
-    link0 = self.world.CreateDynamicBody(position=arm_pose['link0_center'],
-                                         angle=arm_pose['link0_angle'],
+    cue_pose = self._calculate_cue_pose(cue_position)
+    link0 = self.world.CreateDynamicBody(position=cue_pose['link0_center'],
+                                         angle=cue_pose['link0_angle'],
                                          bullet=True,
                                          allowSleep=True,
                                          userData={'name': 'link0'},
@@ -293,8 +290,8 @@ class PhysicsSim(object):
                                               bodyB=link0,
                                               anchor=self.walls[3].worldCenter,
                                               axis=axis,
-                                              lowerTranslation=-10.0,
-                                              upperTranslation=10.0,
+                                              lowerTranslation=-.2,
+                                              upperTranslation=.2,
                                               enableLimit=True,
                                               maxMotorForce=1.0,
                                               motorSpeed=0.0,
@@ -350,7 +347,7 @@ class PhysicsSim(object):
 
     # Limit max joint speed
     if(self._use_cue):
-      self.cue[joint].motorSpeed = np.float(np.sign(speed)*min(1, np.abs(speed)))
+      self.cue[joint].motorSpeed = np.float(np.sign(speed)*min(100, np.abs(speed)))
     else:
       self.arm[joint].motorSpeed = np.float(np.sign(speed)*min(1, np.abs(speed)))
 

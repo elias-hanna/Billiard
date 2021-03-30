@@ -10,15 +10,15 @@ print('Actions {}'.format(env.action_space))
 print('Obs {}'.format(env.observation_space))
 
 action = env.action_space.sample()
-lim = 20
+lim = 0
 total_act = np.array([0., 0.])
 for i in range(10):
   obs = env.reset()
   a = env.render(mode='rgb_array')
 
-  for t in range(100000):
+  for t in range(10000):
     if t < lim:
-      action = [1.1, 5.]
+      action = [10, 5.]
       total_act += np.array(action)
 
     else:
