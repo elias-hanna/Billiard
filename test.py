@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 from math import cos
 
 print('Actions {}'.format(env.action_space))
+print("Size of action space: ", env.action_space.shape[0])
 print('Obs {}'.format(env.observation_space))
+print("Size of obs space: ", env.observation_space.shape[0])
 
 action = env.action_space.sample()
 lim = 200
@@ -18,7 +20,7 @@ for i in range(10):
 
   for t in range(10000):
     if t < lim:
-      action = [1, 5.]
+      action = [10, 5.]
       total_act += np.array(action)
 
     else:

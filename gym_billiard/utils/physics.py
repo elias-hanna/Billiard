@@ -69,7 +69,7 @@ class PhysicsSim(object):
     self._use_cue = use_cue
     if(self._use_cue):
       # self._create_cue(cue_position=arm_position)
-      self._create_cue(cue_position=np.append(balls_pose[0], cue_angle))
+      self._create_cue(cue_position=balls_pose[0], cue_angle=cue_angle)
     else:
       self._create_robotarm(arm_position)
     self._create_holes()
@@ -235,7 +235,7 @@ class PhysicsSim(object):
     ## Arm definition with links and joints
     self.arm = {'link0': link0, 'link1': link1, 'joint01': joint01, 'jointW0': jointW0}
 
-  def _calculate_cue_pose(self, ball_position=None):
+  def _calculate_cue_pose(self, ball_position=None, cue_angle=None):
     """
     This function calculates the cue initial position according to the ball to hit position
     :param ball_position: joint arm position in radians. The zero is at the vertical position
@@ -243,32 +243,31 @@ class PhysicsSim(object):
     """
     pose = {'link0_center': np.array((self.params.TABLE_CENTER[0], self.params.LINK_0_LENGTH/2)),
             'link0_angle':0}
-    if ball_position is not None:
+    if ball_position is not None and cue_angle is not None:
       ## LINK 0
-      ball_position[0:2] = ball_position[0:2] + self.tw_transform
+      # ball_position[0:2] = ball_position[0:2] + self.tw_transform
+      ball_position = ball_position + self.tw_transform
 
-      x = ball_position[0] + (-np.sin(ball_position[2]) *
+      x = ball_position[0] + (-np.sin(cue_angle) *
                               (self.params.LINK_0_LENGTH/2 + self.params.CUE_DISTANCE_TO_BALL + self.params.BALL_RADIUS))
-      y = ball_position[1] + (np.cos(ball_position[2]) *
+      y = ball_position[1] + (np.cos(cue_angle) *
                               (self.params.LINK_0_LENGTH/2 + self.params.CUE_DISTANCE_TO_BALL + self.params.BALL_RADIUS)) 
 
       center_pose = np.array((x,y))
-
-      print("DISTANCE TO BALL CENTER BEFORE: ", np.linalg.norm(np.array(ball_position[0], ball_position[1]) - center_pose))
       
       # pose['link0_center'] = np.array((x, y)) #+ l0_joint_center
       pose['link0_center'] = center_pose #+ l0_joint_center
-      pose['link0_angle'] = float(ball_position[2])
+      pose['link0_angle'] = float(cue_angle)
 
     return pose
   
-  def _create_cue(self, cue_position=None):
+  def _create_cue(self, cue_position=None, cue_angle=None):
     """
     Creates an actuated cue.
     :param cue_position: Initial space position
     :return:
     """
-    cue_pose = self._calculate_cue_pose(cue_position)
+    cue_pose = self._calculate_cue_pose(cue_position, cue_angle)
     link0 = self.world.CreateDynamicBody(position=cue_pose['link0_center'],
                                          angle=cue_pose['link0_angle'],
                                          bullet=True,
@@ -284,7 +283,7 @@ class PhysicsSim(object):
                                           maskBits=self.params.BALL_CATEGORY))
     
     # Compute prismatic axis so that it's along the cue
-    axis = (np.sin(cue_position[2]), -np.cos(cue_position[2]))
+    axis = (np.sin(cue_angle), -np.cos(cue_angle))
     
     jointW0 = self.world.CreatePrismaticJoint(bodyA=self.walls[3],
                                               bodyB=link0,
@@ -309,7 +308,7 @@ class PhysicsSim(object):
     self.holes = [{'pose': np.array([-self.params.TABLE_SIZE[0] / 2, self.params.TABLE_SIZE[1] / 2]), 'radius': .4},
                   {'pose': np.array([self.params.TABLE_SIZE[0] / 2, self.params.TABLE_SIZE[1] / 2]), 'radius': .4}]
 
-  def reset(self, balls_pose, arm_position, cue_angle=0):
+  def reset(self, balls_pose, arm_position, cue_angle=None):
     """
     Reset the world to the given arm and balls poses
     :param balls_pose:
@@ -325,7 +324,7 @@ class PhysicsSim(object):
     ## Recreate the balls and the arm
     self._create_balls(balls_pose)
     if(self._use_cue):
-      self._create_cue(cue_position=np.append(balls_pose[0], cue_angle))
+      self._create_cue(cue_position=balls_pose[0], cue_angle=cue_angle)
     else:
       self._create_robotarm(arm_position)
 

@@ -30,11 +30,27 @@ class CurlingCue(billiard_env.BilliardEnv):
   """
   def __init__(self, seed=None, max_steps=500):
     super().__init__(seed, max_steps)
+
+    ## Ball XY positions can be between -1.5 and 1.5
+    ## Arm joint can have positons:
+    # Joint 0: [-params.CUE_DISTANCE_TO_BALL, params.CUE_DISTANCE_TO_BALL]
+    self.observation_space = spaces.Box(low=np.array([
+                                          -self.params.TABLE_SIZE[0] / 2., -self.params.TABLE_SIZE[1] / 2., # ball pose
+                                          -self.params.CUE_DISTANCE_TO_BALL,                                # joint angles
+                                          -50]),                                                            # joint vels
+                                        high=np.array([
+                                          self.params.TABLE_SIZE[0] / 2., self.params.TABLE_SIZE[1] / 2.,   # ball pose
+                                          self.params.CUE_DISTANCE_TO_BALL,                                 # joint angles
+                                          50]), dtype=np.float32)                                           # joint vels
+
+    ## Joint commands can be between [-10, 10]
+    self.action_space = spaces.Box(low=np.array([-10., -np.pi]), high=np.array([10., np.pi]), dtype=np.float32)
+    
     self.physics_eng = physics.PhysicsSim(use_cue=True)
     self.goals = np.array([[-0.8, .8]])
     self.goalRadius = [0.4]
 
-  def reset(self, desired_ball_pose=None):
+  def reset(self, desired_ball_pose=None, desired_cue_angle=None):
     """
     Function to reset the environment.
     - If param RANDOM_BALL_INIT_POSE is set, the ball appears in a random pose, otherwise it will appear at [-0.5, 0.2]
@@ -51,6 +67,8 @@ class CurlingCue(billiard_env.BilliardEnv):
 
     if self.params.RANDOM_CUE_INIT_ANGLE:
       init_cue_angle = self.np_random.uniform(low= -np.pi, high=np.pi)
+    elif desired_cue_angle is not None:
+      init_cue_angle=desired_cue_angle
     else:
       init_cue_angle = 0
 
