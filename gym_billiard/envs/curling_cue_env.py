@@ -45,6 +45,7 @@ class CurlingCue(billiard_env.BilliardEnv):
 
     ## Joint commands can be between [-10, 10]
     self.action_space = spaces.Box(low=np.array([-10., -np.pi]), high=np.array([10., np.pi]), dtype=np.float32)
+    # self.action_space = spaces.Box(low=np.array([-10.]), high=np.array([10.]), dtype=np.float32)
     
     self.physics_eng = physics.PhysicsSim(use_cue=True)
     self.goals = np.array([[-0.8, .8]])
@@ -58,12 +59,12 @@ class CurlingCue(billiard_env.BilliardEnv):
     :return: Initial observation
     """
     if self.params.RANDOM_BALL_INIT_POSE:
-      init_ball_pose = np.array([self.np_random.uniform(low=-1.2, high=1.2),  # x
+      self.init_ball_pose = np.array([self.np_random.uniform(low=-1.2, high=1.2),  # x
                                  self.np_random.uniform(low=-1.2, high=1.2)])  # y
     elif desired_ball_pose is not None:
-      init_ball_pose = np.array(desired_ball_pose)
+      self.init_ball_pose = np.array(desired_ball_pose)
     else:
-      init_ball_pose = np.array([-0.5, 0.2])
+      self.init_ball_pose = np.array([-0.5, 0.2])
 
     if self.params.RANDOM_CUE_INIT_ANGLE:
       init_cue_angle = self.np_random.uniform(low= -np.pi, high=np.pi)
@@ -72,8 +73,8 @@ class CurlingCue(billiard_env.BilliardEnv):
     else:
       init_cue_angle = 0
 
-    init_joint_pose = None
-    self.physics_eng.reset([init_ball_pose], init_joint_pose, cue_angle=init_cue_angle)
+    self.init_joint_pose = None
+    self.physics_eng.reset([self.init_ball_pose], self.init_joint_pose, cue_angle=init_cue_angle)
     self.steps = 0
     self.rew_area = None
     return self._get_obs()
@@ -117,6 +118,17 @@ class CurlingCue(billiard_env.BilliardEnv):
     :return: state, reward, final, info
     """
     # action = np.clip(action, -1, 1)
+
+    if self.steps == 0:
+      if self.params.RANDOM_CUE_INIT_ANGLE:
+        init_cue_angle = self.np_random.uniform(low= -np.pi, high=np.pi)
+      elif desired_cue_angle is not None:
+        init_cue_angle=action[1]
+      else:
+        init_cue_angle = 0
+
+      init_joint_pose = None
+      self.physics_eng.reset([self.init_ball_pose], init_joint_pose, cue_angle=init_cue_angle)
 
     self.steps += 1
     ## Pass motor command
