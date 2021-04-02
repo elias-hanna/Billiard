@@ -119,10 +119,12 @@ class CurlingCue(billiard_env.BilliardEnv):
     """
     # action = np.clip(action, -1, 1)
 
+    self._get_obs()
+
     if self.steps == 0:
       if self.params.RANDOM_CUE_INIT_ANGLE:
         init_cue_angle = self.np_random.uniform(low= -np.pi, high=np.pi)
-      elif desired_cue_angle is not None:
+      elif action[1] is not None:
         init_cue_angle=action[1]
       else:
         init_cue_angle = 0
@@ -136,7 +138,7 @@ class CurlingCue(billiard_env.BilliardEnv):
     ## Simulate timestep
     self.physics_eng.step()
     ## Get state
-    self._get_obs()
+    # self._get_obs()
     info = {}
 
     # Get reward

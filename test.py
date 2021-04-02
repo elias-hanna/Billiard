@@ -20,7 +20,7 @@ for i in range(10):
 
   for t in range(10000):
     if t < lim:
-      action = [10, 5.]
+      action = [1, np.pi]
       total_act += np.array(action)
 
     else:

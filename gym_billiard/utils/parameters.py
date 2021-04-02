@@ -46,7 +46,7 @@ class Params(object):
     self.TEST = True
 
     self.RANDOM_ARM_INIT_POSE = False
-    self.RANDOM_CUE_INIT_ANGLE = True
-    self.RANDOM_BALL_INIT_POSE = True
+    self.RANDOM_CUE_INIT_ANGLE = False
+    self.RANDOM_BALL_INIT_POSE = False
 
     self.SHOW_ARM_IN_ARRAY = True
