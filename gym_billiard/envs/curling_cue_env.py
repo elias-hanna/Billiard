@@ -20,13 +20,12 @@ logger = logging.getLogger(__name__)
 class CurlingCue(billiard_env.BilliardEnv):
   """
   State is composed of:
-  s = ([ball_x, ball_y, joint0_angle, joint1_angle, joint0_speed, joint1_speed])
+  s = ([ball_x, ball_y, joint0_angle, joint0_speed])
 
   The values that these components can take are:
   ball_x, ball_y -> [-1.5, 1.5]
   joint0_angle -> [-pi/2, pi/2]
-  joint1_angle -> [-pi, pi]
-  joint0_speed, joint1_speed -> [-50, 50]
+  joint0_speed -> [-50, 50]
   """
   def __init__(self, seed=None, max_steps=500):
     super().__init__(seed, max_steps)
@@ -36,8 +35,8 @@ class CurlingCue(billiard_env.BilliardEnv):
     # Joint 0: [-params.CUE_DISTANCE_TO_BALL, params.CUE_DISTANCE_TO_BALL]
     self.observation_space = spaces.Box(low=np.array([
                                           -self.params.TABLE_SIZE[0] / 2., -self.params.TABLE_SIZE[1] / 2., # ball pose
-                                          -self.params.CUE_DISTANCE_TO_BALL,                                # joint angles
-                                          -50]),                                                            # joint vels
+                                          -self.params.CUE_DISTANCE_TO_BALL,                                # joint angle
+                                          -50]),                                                            # joint vel
                                         high=np.array([
                                           self.params.TABLE_SIZE[0] / 2., self.params.TABLE_SIZE[1] / 2.,   # ball pose
                                           self.params.CUE_DISTANCE_TO_BALL,                                 # joint angles
@@ -50,6 +49,7 @@ class CurlingCue(billiard_env.BilliardEnv):
     self.physics_eng = physics.PhysicsSim(use_cue=True)
     self.goals = np.array([[-0.8, .8]])
     self.goalRadius = [0.4]
+    self.unique_action = None
 
   def reset(self, desired_ball_pose=None, desired_cue_angle=None):
     """
@@ -110,7 +110,7 @@ class CurlingCue(billiard_env.BilliardEnv):
           info['rew_area'] = goal_idx
           return reward, done, info
     return 0, False, info
-
+  
   def step(self, action):
     """
     Performs an environment step.
@@ -129,12 +129,15 @@ class CurlingCue(billiard_env.BilliardEnv):
       else:
         init_cue_angle = 0
 
+      self.unique_action = action[0] 
+
       init_joint_pose = None
       self.physics_eng.reset([self.init_ball_pose], init_joint_pose, cue_angle=init_cue_angle)
 
     self.steps += 1
     ## Pass motor command
-    self.physics_eng.move_joint('jointW0', action[0])
+    # self.physics_eng.move_joint('jointW0', action[0])
+    self.physics_eng.move_joint('jointW0', self.unique_action)
     ## Simulate timestep
     self.physics_eng.step()
     ## Get state
