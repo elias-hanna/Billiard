@@ -34,7 +34,8 @@ class Params(object):
     self.BALL_CATEGORY = 0x0002
 
     self.CUE_DISTANCE_TO_BALL = 0.2
-
+    self.CUE_THROUGH_DISTANCE = 0.01
+    
   # Graphic params
     self.PPM = int(min(self.DISPLAY_SIZE)/max(self.TABLE_SIZE))
     self.TARGET_FPS = 60

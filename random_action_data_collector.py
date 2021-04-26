@@ -6,8 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import cos
 
-import time
-
 print('Actions {}'.format(env.action_space))
 print("Size of action space: ", env.action_space.shape[0])
 print('Obs {}'.format(env.observation_space))
@@ -24,7 +22,6 @@ data_out = np.zeros((499*N,4))
   
 # N episodes
 for i in range(N):
-  begin_time = time.time()
   # Reset env and local variables
   obs = env.reset()
   
@@ -34,23 +31,18 @@ for i in range(N):
   # T time steps, but "done" can be attained before T is reached
   for t in range(T):
     if t < lim:
-      action = [np.random.uniform(low=0., high=10.), np.random.uniform(low=-np.pi, high=np.pi)]
-      
+      action = [np.random.uniform(low=0., high=2.), np.random.uniform(low=-np.pi, high=np.pi)]
+      # print("prev_obs: ", prev_obs)
     else:
-      action = [np.random.uniform(low=-10., high=10.), np.random.uniform(low=-np.pi, high=np.pi)]
+      action = [np.random.uniform(low=-0., high=2.), np.random.uniform(low=-np.pi, high=np.pi)]
       # env.render(mode='human')
 
     obs, reward, done, info = env.step(action)
-
-    if done is True:
-      pass
     
     if t != 0:
-
       data_out[i*t] = obs
       data_in[i*t] = np.concatenate((prev_action, prev_obs), axis=None)
     if done:
-      end_time = time.time()
       print("{:.1f}".format(i/N*100),"% done", end="\r")
       break
 

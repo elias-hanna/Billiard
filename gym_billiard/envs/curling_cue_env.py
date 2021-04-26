@@ -10,6 +10,7 @@ from gym_billiard.envs import billiard_env
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
+from collections import deque
 
 # TODO implement logger
 
@@ -35,21 +36,22 @@ class CurlingCue(billiard_env.BilliardEnv):
     # Joint 0: [-params.CUE_DISTANCE_TO_BALL, params.CUE_DISTANCE_TO_BALL]
     self.observation_space = spaces.Box(low=np.array([
                                           -self.params.TABLE_SIZE[0] / 2., -self.params.TABLE_SIZE[1] / 2., # ball pose
-                                          -self.params.CUE_DISTANCE_TO_BALL,                                # joint angle
+                                          -self.params.CUE_DISTANCE_TO_BALL-0.1,                                # joint angle
                                           -50]),                                                            # joint vel
                                         high=np.array([
                                           self.params.TABLE_SIZE[0] / 2., self.params.TABLE_SIZE[1] / 2.,   # ball pose
-                                          self.params.CUE_DISTANCE_TO_BALL,                                 # joint angles
+                                          self.params.CUE_DISTANCE_TO_BALL+0.1,                                 # joint angles
                                           50]), dtype=np.float32)                                           # joint vels
 
     ## Joint commands can be between [-10, 10]
-    self.action_space = spaces.Box(low=np.array([-10., -np.pi]), high=np.array([10., np.pi]), dtype=np.float32)
+    self.action_space = spaces.Box(low=np.array([-2., -np.pi]), high=np.array([2., np.pi]), dtype=np.float32)
     # self.action_space = spaces.Box(low=np.array([-10.]), high=np.array([10.]), dtype=np.float32)
     
     self.physics_eng = physics.PhysicsSim(use_cue=True)
     self.goals = np.array([[-0.8, .8]])
     self.goalRadius = [0.4]
     self.unique_action = None
+    self.pose_buffer = deque(maxlen=3) # contains 3 last poses
 
   def reset(self, desired_ball_pose=None, desired_cue_angle=None):
     """
@@ -85,6 +87,7 @@ class CurlingCue(billiard_env.BilliardEnv):
     :return: state: composed of ([ball_pose_x, ball_pose_y], [joint0_angle, joint1_angle], [joint0_speed, joint1_speed])
     """
     ball_pose = self.physics_eng.balls[0].position + self.physics_eng.wt_transform
+    self.pose_buffer.append(ball_pose)
     joint0_t = self.physics_eng.cue['jointW0'].translation
     joint0_v = self.physics_eng.cue['jointW0'].speed
     if np.abs(ball_pose[0]) > 1.5 or np.abs(ball_pose[1]) > 1.5:
@@ -119,29 +122,22 @@ class CurlingCue(billiard_env.BilliardEnv):
     """
     # action = np.clip(action, -1, 1)
 
-    self._get_obs()
-
     if self.steps == 0:
-      if self.params.RANDOM_CUE_INIT_ANGLE:
-        init_cue_angle = self.np_random.uniform(low= -np.pi, high=np.pi)
-      elif action[1] is not None:
-        init_cue_angle=action[1]
-      else:
-        init_cue_angle = 0
+  
+      if action[1] is not None:
+        self.reset(desired_cue_angle=action[1])
 
-      self.unique_action = action[0] 
-
-      init_joint_pose = None
-      self.physics_eng.reset([self.init_ball_pose], init_joint_pose, cue_angle=init_cue_angle)
+      self.unique_action = action[0]
 
     self.steps += 1
     ## Pass motor command
-    # self.physics_eng.move_joint('jointW0', action[0])
-    self.physics_eng.move_joint('jointW0', self.unique_action)
+    self.physics_eng.move_joint('jointW0', action[0])
+    # self.physics_eng.move_joint('jointW0', self.unique_action)
+    # self.physics_eng.move_joint('jointW0', self.unique_action)
     ## Simulate timestep
     self.physics_eng.step()
     ## Get state
-    # self._get_obs()
+    self._get_obs()
     info = {}
 
     # Get reward
@@ -151,4 +147,9 @@ class CurlingCue(billiard_env.BilliardEnv):
       done = True
       info['reason'] = 'Max Steps reached: {}'.format(self.steps)
 
+    if len(self.pose_buffer) == 3:
+      if ( (self.pose_buffer[0] == self.pose_buffer[1]) and (self.pose_buffer[1] == self.pose_buffer[2]) #if last 3 poses identical
+      and (self.pose_buffer[0].x != self.init_ball_pose[0]) and (self.pose_buffer[0].y != self.init_ball_pose[1])): #and != from init
+        done = True
+        info['reason'] = 'Ball has stop moving for 3 time steps'
     return self.state, reward, done, info
