@@ -35,17 +35,13 @@ class CurlingCue(billiard_env.BilliardEnv):
     ## Arm joint can have positons:
     # Joint 0: [-params.CUE_DISTANCE_TO_BALL, params.CUE_DISTANCE_TO_BALL]
     self.observation_space = spaces.Box(low=np.array([
-                                          -self.params.TABLE_SIZE[0] / 2., -self.params.TABLE_SIZE[1] / 2., # ball pose
-                                          -self.params.CUE_DISTANCE_TO_BALL-0.1,                                # joint angle
-                                          -50]),                                                            # joint vel
+                                          -self.params.TABLE_SIZE[0] / 2., -self.params.TABLE_SIZE[1] / 2.]), # ball pose
                                         high=np.array([
-                                          self.params.TABLE_SIZE[0] / 2., self.params.TABLE_SIZE[1] / 2.,   # ball pose
-                                          self.params.CUE_DISTANCE_TO_BALL+0.1,                                 # joint angles
-                                          50]), dtype=np.float32)                                           # joint vels
+                                          self.params.TABLE_SIZE[0] / 2., self.params.TABLE_SIZE[1] / 2.]),   # ball pose
+                                        dtype=np.float32)
 
-    ## Joint commands can be between [-10, 10]
+    ## Joint commands can be between [-2, 2]
     self.action_space = spaces.Box(low=np.array([-2., -np.pi]), high=np.array([2., np.pi]), dtype=np.float32)
-    # self.action_space = spaces.Box(low=np.array([-10.]), high=np.array([10.]), dtype=np.float32)
     
     self.physics_eng = physics.PhysicsSim(use_cue=True)
     self.goals = np.array([[-0.8, .8]])
@@ -93,7 +89,7 @@ class CurlingCue(billiard_env.BilliardEnv):
     if np.abs(ball_pose[0]) > 1.5 or np.abs(ball_pose[1]) > 1.5:
       raise ValueError('Ball out of map in position: {}'.format(ball_pose))
 
-    self.state = np.array([ball_pose[0], ball_pose[1], joint0_t, joint0_v])
+    self.state = np.array([ball_pose[0], ball_pose[1]])
     return self.state
   
   def reward_function(self, info):

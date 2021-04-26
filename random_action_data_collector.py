@@ -17,8 +17,8 @@ lim = 200
 N = 10000
 T = 1000
 
-data_in = np.zeros((499*N,6))
-data_out = np.zeros((499*N,4))
+data_in = np.zeros((499*N,4))
+data_out = np.zeros((499*N,2))
   
 # N episodes
 for i in range(N):
