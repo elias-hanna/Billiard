@@ -14,12 +14,13 @@ print("Size of obs space: ", env.observation_space.shape[0])
 action = env.action_space.sample()
 lim = 200
 
-N = 10000
+N = 1000
 T = 1000
 
-data_in = np.zeros((499*N,4))
-data_out = np.zeros((499*N,2))
-  
+data_in = np.zeros((T*N,4))
+data_out = np.zeros((T*N,2))
+
+tab_cpt = 0
 # N episodes
 for i in range(N):
   # Reset env and local variables
@@ -30,18 +31,15 @@ for i in range(N):
   
   # T time steps, but "done" can be attained before T is reached
   for t in range(T):
-    if t < lim:
+    if t == 0:
       action = [np.random.uniform(low=0., high=2.), np.random.uniform(low=-np.pi, high=np.pi)]
-      # print("prev_obs: ", prev_obs)
-    else:
-      action = [np.random.uniform(low=-0., high=2.), np.random.uniform(low=-np.pi, high=np.pi)]
-      # env.render(mode='human')
-
+      
     obs, reward, done, info = env.step(action)
     
     if t != 0:
-      data_out[i*t] = obs
-      data_in[i*t] = np.concatenate((prev_action, prev_obs), axis=None)
+      data_out[tab_cpt] = obs
+      data_in[tab_cpt] = np.concatenate((prev_action, prev_obs), axis=None)
+      tab_cpt += 1
     if done:
       print("{:.1f}".format(i/N*100),"% done", end="\r")
       break
