@@ -26,7 +26,7 @@ class CurlingCue(billiard_env.BilliardEnv):
   The values that these components can take are:
   ball_x, ball_y -> [-1.5, 1.5]
   joint0_angle -> [-pi/2, pi/2]
-  joint0_speed -> [-50, 50]
+  joint0_speed -> [0, 2]
   """
   def __init__(self, seed=None, max_steps=500):
     super().__init__(seed, max_steps)
@@ -40,9 +40,9 @@ class CurlingCue(billiard_env.BilliardEnv):
                                           self.params.TABLE_SIZE[0] / 2., self.params.TABLE_SIZE[1] / 2.]),   # ball pose
                                         dtype=np.float32)
 
-    ## Joint commands can be between [-2, 2]
-    self.action_space = spaces.Box(low=np.array([-2., -np.pi]), high=np.array([2., np.pi]), dtype=np.float32)
-    
+    ## Joint commands can be between [0, 2]
+    self.action_space = spaces.Box(low=np.array([0., -np.pi]), high=np.array([2., np.pi]), dtype=np.float32)
+    self.steps = 0
     self.physics_eng = physics.PhysicsSim(use_cue=True)
     self.goals = np.array([[-0.8, .8]])
     self.goalRadius = [0.4]
@@ -75,6 +75,10 @@ class CurlingCue(billiard_env.BilliardEnv):
     self.physics_eng.reset([self.init_ball_pose], self.init_joint_pose, cue_angle=init_cue_angle)
     self.steps = 0
     self.rew_area = None
+    # fill pose buffer with init ball pose
+    self.pose_buffer.append(self.init_ball_pose)
+    self.pose_buffer.append(self.init_ball_pose)
+    self.pose_buffer.append(self.init_ball_pose)
     return self._get_obs()
 
   def _get_obs(self):
@@ -121,7 +125,7 @@ class CurlingCue(billiard_env.BilliardEnv):
     if self.steps == 0:
   
       if action[1] is not None:
-        self.reset(desired_cue_angle=action[1])
+        self.reset(desired_ball_pose=self.init_ball_pose, desired_cue_angle=action[1])
 
       self.unique_action = action[0]
 
@@ -143,9 +147,13 @@ class CurlingCue(billiard_env.BilliardEnv):
       done = True
       info['reason'] = 'Max Steps reached: {}'.format(self.steps)
 
+    delta_err = 0.001
     if len(self.pose_buffer) == 3:
-      if ( (self.pose_buffer[0] == self.pose_buffer[1]) and (self.pose_buffer[1] == self.pose_buffer[2]) #if last 3 poses identical
-      and (self.pose_buffer[0].x != self.init_ball_pose[0]) and (self.pose_buffer[0].y != self.init_ball_pose[1])): #and != from init
+      if ( (self.pose_buffer[0][0] == self.pose_buffer[1][0]) and (self.pose_buffer[1][0] == self.pose_buffer[2][0]) #if last 3 poses identical
+           and (self.pose_buffer[0][1] == self.pose_buffer[1][1]) and (self.pose_buffer[1][1] == self.pose_buffer[2][1])
+      # and (self.pose_buffer[0].x != self.init_ball_pose[0]) and (self.pose_buffer[0].y != self.init_ball_pose[1])): #and != from init
+           and (abs(self.pose_buffer[0][0] - self.init_ball_pose[0]) > delta_err )
+           and (abs(self.pose_buffer[0][1] - self.init_ball_pose[1]) > delta_err ) ): #and != from init
         done = True
         info['reason'] = 'Ball has stop moving for 3 time steps'
     return self.state, reward, done, info
